@@ -1,0 +1,138 @@
+# 
+# Squid を使用して docwiki.embarcadero.com のコンテンツをキャッシュするサーバを
+# 自分のPC内だけで動くように設定する。
+#
+
+
+# 動作方法に関する設定（リバースプロキシ）
+# http://127.0.0.1/ あてのリクエストは docwiki.embarcadero.com に中継します。
+#
+# この設定を利用する場合は、host で "127.0.0.1 docwiki.embarcadero.com" と設定します。
+# これにより docwiki.embarcadero.com 宛てのリクエストは自動的に squid を経由します。
+#
+http_port 127.0.0.1:80 accel ignore-cc vport=0
+cache_peer docwiki.embarcadero.com parent 80 0 originserver 
+
+# 社内ネットワークからの外部接続に proxy server が必要な場合の設定例。
+# cache_peer [プロキシサーバ] parent 3128 0 default
+
+
+# キャッシュディレクトリの設定
+#
+# この設定にしたのち、squid.exe -z を実行してキャッシュディレクトリの構築を行わせる。
+# ディスクキャッシュは最大で3GBを消費する。
+#
+# この設定は安定的に動作する代わりに disk I/O が速くない。
+# これが問題となる場合は動作が一通り正常に動くことを確認の後、
+# ufs の指定を aufs に変更する。
+cache_dir aufs /cygdrive/d/squid/cache 3000 16 256
+
+# squid が参照するDNSサーバを指定する。
+# ここでは Google Public DNS を指定しているが、
+# 実際の設定は使用するネットワークにあわせて適切に変えること。
+dns_nameservers 8.8.8.8
+
+# squid が使用する hosts ファイルを指定します。
+# OS標準の hosts ファイルは docwiki.embarcadero.com への名前解決を記述しますが、
+# その名前解決を squid が参照するとリクエストループが発生する可能性があるため、
+# ここでは上記設定を含まないファイルを squid に別途渡します。
+# 本設定を記述しています。
+hosts_file /cygdrive/d/squid/etc/squid/hosts
+
+# docwiki.embarcadero.com のコンテンツを強制的にキャッシュするための設定(1)
+# docwiki のすべてのコンテンツを無条件に28日間キャッシュする。
+# 40320 = 60分 x 24時間 x 28日
+refresh_pattern ^http://docwiki.embarcadero.com		40320	100%	40320 override-expire override-lastmod ignore-no-cache ignore-no-store ignore-must-revalidate ignore-private 
+
+
+# docwiki.embarcadero.com のコンテンツを強制的にキャッシュするための設定(2)
+# 一部のレスポンスヘッダを捨てる
+reply_header_access Expires deny all
+reply_header_access Cookie  deny all
+reply_header_access Cache-Control deny all
+reply_header_access Last-Modified deny all
+reply_header_access Pragma deny all
+
+# 一部のリクエストヘッダも捨てる
+request_header_access Upgrade-Insecure-Requests deny all
+request_header_access Cookie  deny all
+request_header_access Cache-Control deny all
+
+
+######################################################################
+# 以下の設定変更は影響範囲を理解して行うこと。
+# 通常は本設定を変更する必要は無いと考えられる。
+######################################################################
+# ACL定義: プライベートネットワークからの接続
+acl localnet src 10.0.0.0/8	# RFC1918 possible internal network
+acl localnet src 172.16.0.0/12	# RFC1918 possible internal network
+acl localnet src 192.168.0.0/16	# RFC1918 possible internal network
+acl localnet src fc00::/7       # RFC 4193 local private network range
+acl localnet src fe80::/10      # RFC 4291 link-local (directly plugged) machines
+
+# ACL定義: TCPポート番号に関する定義
+acl SSL_ports port 443
+acl Safe_ports port 80		# http
+acl Safe_ports port 21		# ftp
+acl Safe_ports port 443		# https
+acl Safe_ports port 70		# gopher
+acl Safe_ports port 210		# wais
+acl Safe_ports port 1025-65535	# unregistered ports
+acl Safe_ports port 280		# http-mgmt
+acl Safe_ports port 488		# gss-http
+acl Safe_ports port 591		# filemaker
+acl Safe_ports port 777		# multiling http
+acl CONNECT method CONNECT
+
+# ACLに基づく接続制御: 安全ではない可能性のあるポートへの接続を行わない
+http_access deny !Safe_ports
+
+# ACLに基づく接続制御: CONNECT メソッドは SSL ポートに対してのみ使用する
+http_access deny CONNECT !SSL_ports
+
+# ACLに基づく接続制御: cachemgr はローカルホストからのみ使えるようにする
+http_access allow localhost manager
+http_access deny manager
+
+# ACLに基づく接続制御: 接続元が自分自身またはプライベートアドレスの場合は接続を許可する。
+http_access allow localnet
+http_access allow localhost
+
+# ACLに基づく接続制御: その他のすべての接続は許可しない。
+http_access deny all
+
+# コアダンプ先の設定
+coredump_dir /var/cache/squid
+
+# キャッシュの保持期間に関する設定 
+# ftp や gohper 向けの設定（今の時代に gohper が存在しているのだろうか？）
+refresh_pattern ^ftp:		1440	20%	10080
+refresh_pattern ^gopher:	1440	0%	1440
+
+# cgi や クエリーパラメータを含むコンテンツをキャッシュしない設定を無効化。
+#refresh_pattern -i (/cgi-bin/|\?) 0	0%	0
+
+# デフォルトの refresh_pattern の設定
+refresh_pattern .		0	20%	4320
+
+# ファイルディスクリプタの数を増やしてみる。
+# (この設定調整は、運用負荷が高いキャッシュサーバでのみ意味を持つ。通常は変更不要）
+max_filedescriptors 3200
+
+# Vary ヘッダを受信しても Expire しない
+# Squid は Vary ヘッダを受信したらデフォルトでは当該コンテンツをキャッシュしないため、
+# 念のためにこれを入れている。
+vary_ignore_expire on
+
+# リクエストのクエリー文字列をログに記録する。
+# デフォルトではクエリー文字列はログに記録されない。
+strip_query_terms off
+
+# for debug
+# ログ出力のバッファリングを無効にする。
+# これを on にすることでログ出力がバッファリングされる。
+# するとログ書き込みによる遅延が生じにくくなる。
+buffered_logs on
+
+# for debug
+#debug_options all,2
