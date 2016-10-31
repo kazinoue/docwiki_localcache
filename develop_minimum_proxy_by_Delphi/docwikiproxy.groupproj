@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{4D391F70-73A0-421E-BC57-E232D43A7E02}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="FMX\docwikiproxy_fmx.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="VCL\docwikiproxy_vcl.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="docwikiproxy_fmx">
+        <MSBuild Projects="FMX\docwikiproxy_fmx.dproj"/>
+    </Target>
+    <Target Name="docwikiproxy_fmx:Clean">
+        <MSBuild Projects="FMX\docwikiproxy_fmx.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="docwikiproxy_fmx:Make">
+        <MSBuild Projects="FMX\docwikiproxy_fmx.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="docwikiproxy_vcl">
+        <MSBuild Projects="VCL\docwikiproxy_vcl.dproj"/>
+    </Target>
+    <Target Name="docwikiproxy_vcl:Clean">
+        <MSBuild Projects="VCL\docwikiproxy_vcl.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="docwikiproxy_vcl:Make">
+        <MSBuild Projects="VCL\docwikiproxy_vcl.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="docwikiproxy_fmx;docwikiproxy_vcl"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="docwikiproxy_fmx:Clean;docwikiproxy_vcl:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="docwikiproxy_fmx:Make;docwikiproxy_vcl:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

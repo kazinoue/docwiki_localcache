@@ -1,0 +1,75 @@
+object Form1: TForm1
+  Left = 0
+  Top = 0
+  Caption = 'Form1'
+  ClientHeight = 480
+  ClientWidth = 640
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop]
+  OnCreate = FormCreate
+  DesignerMasterStyle = 1
+  object Panel1: TPanel
+    Align = Top
+    Size.Width = 640.000000000000000000
+    Size.Height = 49.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 0
+    object Switch1: TSwitch
+      Align = MostRight
+      IsChecked = False
+      Position.X = 562.000000000000000000
+      Size.Width = 78.000000000000000000
+      Size.Height = 49.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 0
+    end
+    object Label1: TLabel
+      Align = Client
+      Margins.Left = 10.000000000000000000
+      Size.Width = 552.000000000000000000
+      Size.Height = 49.000000000000000000
+      Size.PlatformDefault = False
+      Text = 'Show removed HTTP Header'
+    end
+  end
+  object Memo1: TMemo
+    Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+    DataDetectorTypes = []
+    Align = Client
+    Size.Width = 640.000000000000000000
+    Size.Height = 431.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 1
+    Viewport.Width = 632.000000000000000000
+    Viewport.Height = 423.000000000000000000
+  end
+  object IdHTTPProxyServer1: TIdHTTPProxyServer
+    Active = True
+    Bindings = <>
+    DefaultPort = 3128
+    IOHandler = IdServerIOHandlerStack1
+    CommandHandlers = <>
+    ExceptionReply.Code = '500'
+    ExceptionReply.Text.Strings = (
+      'Unknown Internal Error')
+    Greeting.Code = '200'
+    HelpReply.Code = '100'
+    HelpReply.Text.Strings = (
+      'Help follows')
+    MaxConnectionReply.Code = '300'
+    MaxConnectionReply.Text.Strings = (
+      'Too many connections. Try again later.')
+    ReplyTexts = <>
+    ReplyUnknownCommand.Code = '400'
+    DefaultTransferMode = tmStreaming
+    OnHTTPBeforeCommand = IdHTTPProxyServer1HTTPBeforeCommand
+    OnHTTPResponse = IdHTTPProxyServer1HTTPResponse
+    Left = 64
+    Top = 88
+  end
+  object IdServerIOHandlerStack1: TIdServerIOHandlerStack
+    Left = 232
+    Top = 88
+  end
+end
